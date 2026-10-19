@@ -1,0 +1,155 @@
+﻿@rendermode InteractiveServer
+
+<div class="container my-4 p-4 border rounded shadow-sm">
+    <h3>Registro sin usar Classes ni Objects</h3>
+
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger">@mensajeError</div>
+    }
+    @if (!string.IsNullOrEmpty(mensajeExito))
+    {
+        <div class="alert alert-success">@mensajeExito</div>
+    }
+
+    <div class="row g-3 align-items-center mb-3">
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Número (Positivo):</label>
+            <input type="number" min="1" class="form-control" @bind="NumeroIngresado" />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Texto:</label>
+            <input type="text" class="form-control" @bind="TextoIngresado" />
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label fw-bold">Categoría:</label>
+            <select class="form-select" @bind="OpcionSeleccionada">
+                @foreach (var opcion in opcionesDisponibles)
+                {
+                    <option value="@opcion">@opcion</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <button type="button" class="btn btn-primary me-2" @onclick="GuardarElemento">Guardar</button>
+        <button type="button" class="btn btn-secondary me-2" @onclick="MostrarTodos">Ver Todos</button>
+    </div>
+
+    <div class="mb-3">
+        <label class="fw-bold d-block mb-2">Filtrar por:</label>
+        @foreach (var opcion in opcionesDisponibles)
+        {
+            <button type="button" class="btn btn-outline-info me-2 mb-1" @onclick="() => FiltrarPorOpcion(opcion)">
+                @opcion
+            </button>
+        }
+    </div>
+
+    <hr />
+    <h4>Registros Actuales (@vistaActual)</h4>
+
+    @if (listaFiltrada.Count == 0)
+    {
+        <p class="text-muted">No hay registros.</p>
+    }
+    else
+    {
+        <table class="table table-striped mt-3">
+            <thead class="table-dark">
+                <tr>
+                    <th>Número</th>
+                    <th>Texto</th>
+                    <th>Opción</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in listaFiltrada)
+                {
+                    <tr>
+                        <td>@item.Numero</td>
+                        <td>@item.Texto</td>
+                        <td>@item.Opcion</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private int? NumeroIngresado { get; set; }
+    private string TextoIngresado { get; set; } = string.Empty;
+    private string OpcionSeleccionada { get; set; } = "Electrónica";
+
+    private List<string> opcionesDisponibles = new() { "Electrónica", "Ropa", "Hogar", "Deportes" };
+
+    private List<(int Numero, string Texto, string Opcion)> listaMaestra = new();
+    private List<(int Numero, string Texto, string Opcion)> listaFiltrada = new();
+
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+    private string vistaActual = "Todos";
+
+    protected override void OnInitialized()
+    {
+        MostrarTodos();
+    }
+
+    private void GuardarElemento()
+    {
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+
+        if (!NumeroIngresado.HasValue || NumeroIngresado.Value <= 0)
+        {
+            mensajeError = "Debe ingresar un valor numérico positivo mayor a 0.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(TextoIngresado))
+        {
+            mensajeError = "El campo de texto no puede estar vacío.";
+            return;
+        }
+
+        string textoLimpio = TextoIngresado.Trim();
+
+        if (listaMaestra.Any(p => p.Numero == NumeroIngresado.Value))
+        {
+            mensajeError = $"El número '{NumeroIngresado.Value}' ya existe.";
+            return;
+        }
+
+        if (listaMaestra.Any(p => p.Texto.Equals(textoLimpio, StringComparison.OrdinalIgnoreCase)))
+        {
+            mensajeError = $"El texto '{textoLimpio}' ya existe.";
+            return;
+        }
+
+        listaMaestra.Add((NumeroIngresado.Value, textoLimpio, OpcionSeleccionada));
+        mensajeExito = "¡Guardado con éxito!";
+
+        NumeroIngresado = null;
+        TextoIngresado = string.Empty;
+
+        if (vistaActual == "Todos") MostrarTodos();
+        else if (opcionesDisponibles.Contains(vistaActual)) FiltrarPorOpcion(vistaActual);
+        else MostrarTodos();
+    }
+
+    private void MostrarTodos()
+    {
+        vistaActual = "Todos";
+        listaFiltrada = listaMaestra.ToList();
+    }
+
+    private void FiltrarPorOpcion(string opcion)
+    {
+        vistaActual = opcion;
+        listaFiltrada = listaMaestra.Where(p => p.Opcion == opcion).ToList();
+    }
+}
